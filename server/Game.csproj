@@ -44,6 +44,11 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Controller\Game.cs" />
+    <Compile Include="Store\Questions.cs" />
+    <Compile Include="Model\Player.cs" />
+    <Compile Include="Store\IPlayers.cs" />
+    <Compile Include="Store\MemoryPlayers.cs" />
+    <Compile Include="Model\Pair.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -51,6 +56,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Controller\" />
+    <Folder Include="Store\" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

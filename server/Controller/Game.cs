@@ -8,24 +8,25 @@ namespace Game
 {
 	public class Game: WebSocketService
 	{
-		private static Dictionary<String, String> players = new Dictionary<String, String>();
-		private static Dictionary<String, String> playing = new Dictionary<String, String>();
-		private static Dictionary<String, Dictionary<String, String>> invites = new Dictionary<String, Dictionary<String, String>>();
+		private static Store.IPlayers players = new Store.MemoryPlayers();
+		private Model.Player player;
+
 		private static Dictionary<String, Int32[]> answers = new Dictionary<String, Int32[]>();
 		private static Dictionary<String, Double> results = new Dictionary<String, Double>();
 
 		protected override void OnMessage(MessageEventArgs e)
 		{
+			this.player = Game.players.Get (this.ID);
 			var data = JsonSerializer.DeserializeFromString<JsonObject>(e.Data);
 			switch(data.Get("method")){
 			case "login":
-				this.Login (this.ID, data.Get("name"));
+				this.Login (this.ID, data.Get("name"), data.Get<Int32>("gender"));
 				break;
 			case "invite":
-				this.Invite (data.Get("id"));
+				this.Invite (Game.players.Get(data.Get("id")));
 				break;
 			case "startGame":
-				this.StartGame (data.Get("id"));
+				this.StartGame (Game.players.Get(data.Get("id")));
 				break;
 			case "stopGame":
 				this.StopGame ();
@@ -38,127 +39,149 @@ namespace Game
 
 		protected override void OnClose (CloseEventArgs e)
 		{
-			Game.players.Remove (this.ID);
-			Game.playing.Remove (this.ID);
-			Game.invites.Remove (this.ID);
-			Console.WriteLine ("Remove id: {0}", this.ID);
+			Game.players.Del (this.player.id);
+			Console.WriteLine ("Remove player with id: {0}", this.player.id);
 			this.Sessions.BroadcastAsync (JsonSerializer.SerializeToString(new {
 				method = "remove", 
-				id = this.ID,
+				player = this.player,
 			}), null);
 		}
 
-		private void Login (String id, String name)
+		private void Login (String id, String name, Int32 gender)
 		{
-			Game.players [id] = name;
-			Console.WriteLine ("Players count: {0}", Game.players.Count);
+			Model.Player newPlayer = new Model.Player () {
+				id = id,
+				name = name,
+				gender = (Model.Player.Gender)gender,
+			};
+
+			Game.players.Add(newPlayer);
 
 			this.Sessions.BroadcastAsync (JsonSerializer.SerializeToString(new {
 				method = "add",
-				id = id, 
-				name = name,
+				player = newPlayer,
 			}), null);
 
 			this.SendAsync (JsonSerializer.SerializeToString(new {
 				method = "players",
-				id = this.ID,
-				players = Game.players,
+				players = Game.players.Get(10),
 			}), null);
 		}
 
-		private void Invite (String id)
-		{
-			if (!Game.invites.ContainsKey (id)) {
-				Game.invites[id] = new Dictionary<String, String>();
-			}
-			Game.invites [id] [this.ID] = this.ID;
-			this.Sessions.SendToAsync (id, JsonSerializer.SerializeToString(new {
-				method = "invite", 
-				id = this.ID,
-				name = Game.players[this.ID],
-			}), null);
-		}
-
-		private void StartGame (String id)
+		private void Invite (Model.Player opponent)
 		{
 			String error = "";
-			if (!Game.players.ContainsKey(id)) {
+			if (opponent == null) {
+				error = "Player is not in the game";
+			} else if (this.player == null) {
+				error = "You are not in the game";
+			}
+
+			if (!String.IsNullOrEmpty(error)) {
+				this.SendAsync (JsonSerializer.SerializeToString(new {
+					method = "invite",
+					error = error,
+				}), null);
+				return;
+			}
+
+			opponent.invites [this.player.id] = this.player;
+
+			this.Sessions.SendToAsync (opponent.id, JsonSerializer.SerializeToString(new {
+				method = "invite", 
+				player = this.player,
+			}), null);
+		}
+
+		private void StartGame (Model.Player opponent)
+		{
+			String error = "";
+			if (this.player == null) {
 				error = "Player is not in the Game";
-			} else if (Game.playing.ContainsKey(id)) {
+			} else if (opponent.pair != null) {
 				error = "Player is playing";
-			} else if (Game.playing.ContainsKey (this.ID)) {
+			} else if (this.player.pair != null) {
 				error = "You are playing";
-			} else if (!Game.invites.ContainsKey(this.ID) || !Game.invites[this.ID].ContainsKey(id)) {
+			} else if (!this.player.invites.ContainsKey(opponent.id)) {
 				error = "Player has not invited you";
 			}
 
 			if (!String.IsNullOrEmpty(error)) {
 				this.SendAsync (JsonSerializer.SerializeToString(new {
 					method = "startGame",
-					success = false,
-					message = error
+					error = error,
 				}), null);
 				return;
 			}
 
-			String pairId = this.CreatePairId(id, this.ID);
-			Game.playing [this.ID] = id;
-			Game.playing [id] = this.ID;
+			Model.Pair pair = new Model.Pair () { 
+				player1 = this.player,
+				player2 = opponent,
+			};
 
-			Game.invites[this.ID].Remove(id);
+			this.player.pair = pair;
+			opponent.pair = pair;
+
+			this.player.invites.Remove (opponent.id);
 			// Game.invites[id].Remove(this.ID);
 
 			// answers count, right answers count, answer1, answer2
-			Game.answers [pairId] = new [] {0, 0, 0, 0};
+			Game.answers [pair.Id] = new [] {0, 0, 0, 0};
 
 			this.SendAsync (JsonSerializer.SerializeToString(new {
 				method = "startGame",
 				success = true,
-				id = id,
-				message = "Start game"
+				player = opponent,
 			}), null);
 
-			this.Sessions.SendToAsync (id, JsonSerializer.SerializeToString(new {
+			this.Sessions.SendToAsync (opponent.id, JsonSerializer.SerializeToString(new {
 				method = "startGame",
 				success = true,
-				id = this.ID,
-				message = "Start game"
+				player = this.player,
 			}), null);
 		}
 
 		private void StopGame ()
 		{
-			String id = Game.playing [this.ID];
-
-			this.Sessions.SendToAsync (id, JsonSerializer.SerializeToString(new {
-				method = "stopGame",
-			}), null);
+			if (this.player.Opponent != null) {
+				this.Sessions.SendToAsync (this.player.Opponent.id, JsonSerializer.SerializeToString(new {
+					method = "stopGame",
+				}), null);
+			}
 
 			this.finishGame ();
 		}
 
 		private void finishGame ()
 		{
-			String id = Game.playing [this.ID];
+			if (this.player.pair != null) {
+				this.player.Opponent.pair = null;
+				Game.answers.Remove (this.player.pair.Id);
+			}
+			this.player.pair = null;
 
-			Game.playing.Remove (id);
-			Game.playing.Remove (this.ID);
-			Game.answers.Remove (this.CreatePairId(id, this.ID));
 		}
 
 		private void Answer (Int32 answer)
 		{
-			String id = Game.playing[this.ID];
-			String pairId = this.CreatePairId (id, this.ID);
+			if (this.player == null || this.player.pair == null) {
+				this.SendAsync (JsonSerializer.SerializeToString(new {
+					method = "answer",
+					error = "You are not playing",
+				}), null);
+				return;
+			}
+
+			String pairId = this.player.pair.Id;
 
 			Int32 thisAnswerPos = 2;
 			Int32 answerPos = 3;
-			if (String.Compare(id, this.ID) < 0) {
-				answerPos = 2;
+			if (String.Compare(this.player.Opponent.id, this.player.id) < 0) {
 				thisAnswerPos = 3;
+				answerPos = 2;
 			}
 
-			Game.answers[pairId][thisAnswerPos] = answer;
+			Game.answers [pairId] [thisAnswerPos] = answer;
 
 			// another player not answered yet
 			if (Game.answers [pairId] [answerPos] == 0) {
@@ -185,7 +208,7 @@ namespace Game
 				result = result,
 			}), null);
 
-			this.Sessions.SendToAsync (id, JsonSerializer.SerializeToString(new {
+			this.Sessions.SendToAsync (this.player.Opponent.id, JsonSerializer.SerializeToString(new {
 				method = "answer",
 				answer = answer,
 				result = result,
@@ -198,15 +221,6 @@ namespace Game
 			if (result > 0) {
 				this.finishGame ();
 				Game.results[pairId] = result;
-			}
-		}
-
-		private String CreatePairId (String id1, String id2)
-		{
-			if (String.Compare(id1, id2) < 0) {
-				return id1 + "|" + id2;
-			} else {
-				return id2 + "|" + id1;
 			}
 		}
 	}
