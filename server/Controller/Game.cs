@@ -8,7 +8,7 @@ namespace Game
 {
 	public class Game: WebSocketService
 	{
-		private static Store.IPlayers players = new Store.MemoryPlayers();
+		private static Dictionary<String, Model.Player> players = new Dictionary<String, Model.Player>(100);
 		private Model.Player player;
 
 		private static Dictionary<String, Int32[]> answers = new Dictionary<String, Int32[]>();
@@ -16,17 +16,20 @@ namespace Game
 
 		protected override void OnMessage(MessageEventArgs e)
 		{
-			this.player = Game.players.Get (this.ID);
+			Game.players.TryGetValue (this.ID, out this.player);
 			var data = JsonSerializer.DeserializeFromString<JsonObject>(e.Data);
+			Model.Player opponent;
 			switch(data.Get("method")){
 			case "login":
 				this.Login (this.ID, data.Get("name"), data.Get<Int32>("gender"));
 				break;
 			case "invite":
-				this.Invite (Game.players.Get(data.Get("id")));
+				Game.players.TryGetValue (data.Get("id"), out opponent);
+				this.Invite (opponent);
 				break;
 			case "startGame":
-				this.StartGame (Game.players.Get(data.Get("id")));
+				Game.players.TryGetValue (data.Get("id"), out opponent);
+				this.StartGame (opponent);
 				break;
 			case "stopGame":
 				this.StopGame ();
@@ -39,7 +42,7 @@ namespace Game
 
 		protected override void OnClose (CloseEventArgs e)
 		{
-			Game.players.Del (this.player.id);
+			Game.players.Remove (this.player.id);
 			Console.WriteLine ("Remove player with id: {0}", this.player.id);
 			this.Sessions.BroadcastAsync (JsonSerializer.SerializeToString(new {
 				method = "remove", 
@@ -55,7 +58,7 @@ namespace Game
 				gender = (Model.Player.Gender)gender,
 			};
 
-			Game.players.Add(newPlayer);
+			Game.players.Add(newPlayer.id, newPlayer);
 
 			this.Sessions.BroadcastAsync (JsonSerializer.SerializeToString(new {
 				method = "add",
@@ -64,7 +67,7 @@ namespace Game
 
 			this.SendAsync (JsonSerializer.SerializeToString(new {
 				method = "players",
-				players = Game.players.Get(10),
+				players = Game.players,
 			}), null);
 		}
 
