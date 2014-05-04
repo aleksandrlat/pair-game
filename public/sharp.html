@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sharp Pair Game</title>
+	<style type="text/css">
+		.container {
+			background-color: #99CCFF;
+			border: thick solid #808080;
+			padding: 20px;
+			margin: 20px;
+		}
+		#preloader { 
+			display: none;
+		}
+		#gameContainer {
+			display: none;
+		}
+		#gameArea {
+			vertical-align: top;
+			display: none;
+			position: relative;
+		}
+		#gamePlayers {
+			vertical-align: top;
+			display: inline-block;
+			margin-right: 10px;
+		}
+		#gameInvites {
+			vertical-align: top;
+			display: inline-block;
+			margin-right: 10px;
+		}
+		.gamePlayer {
+			display: block;
+		}
+		.gameInvite {
+			display: block;
+		}
+		.gameCurPlayer {
+			display: block;
+		}
+		#gameStop {
+			position: absolute;
+			cursor: pointer;
+			right: 5px;
+		}
+    </style>
+</head>
+<body>
+	<div class="container">
+		<div id="preloader">Loading...</div>
+		<div id="loginForm">
+			<input type="text" id="loginName">
+			<input type="button" id="loginBtn" value="Login">
+		</div>
+		<div id="gameContainer">
+			<div id="gamePlayers"></div><!--
+			--><div id="gameInvites"></div><!--
+			--><div id="gameArea">
+				<div id="gameStop" title="Stop the Game">X</div>
+				<div id="gameResult">Game messages home</div>
+				<div id="gameQuestion">Question <b id="gameQuestionNum">1</b>: here is the question body</div>
+				<div id="gameAnswers">
+					<a data-id="1" class="gameAnswer" href="javascript:">answer 1</a>&nbsp;
+					<a data-id="2" class="gameAnswer" href="javascript:">answer 2</a>&nbsp;
+					<a data-id="3" class="gameAnswer" href="javascript:">answer 3</a>&nbsp;
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+	(function(ws, getById){
+		var
+
+		preloader = (function(getById){
+			var proto = Preloader.prototype;
+
+			function Preloader(el){
+				this.el = el;
+			}
+
+			proto.show = function(){
+				this.el.style.display = 'block';
+			};
+
+			proto.hide = function(){
+				this.el.style.display = 'none';
+			};
+
+			return new Preloader(getById('preloader'));
+		})(getById),
+
+		ws = (function(ws){
+			var proto = WS.prototype,
+
+			onmessage = function(e){
+				this.onmessage(JSON.parse(e.data));
+			};
+
+			function WS(ws){
+				this.ws = ws;
+				this.ws.onmessage = onmessage.bind(this);
+			}
+
+			proto.send = function(data){
+				this.ws.send(JSON.stringify(data));
+			};
+
+			proto.onmessage = function(data){
+				console.log(data);
+			};
+
+			return new WS(ws);
+		})(ws),
+
+		Game = (function(ws, getById){
+			var proto = Game.prototype,
+
+			invite = function(e){
+				if (e.target.classList.contains('gamePlayer')) {
+					ws.send({method: 'invite', id: e.target.id.substr(3)});
+				}
+			},
+
+			startGame = function(e){
+				if (e.target.classList.contains('gameInvite')) {
+					ws.send({method: 'startGame', id: e.target.id.substr(4)});
+				}
+			},
+
+			stopGame = function(e){
+				this.area.style.display = 'none';
+				if (this.playingId) {
+					ws.send({method: 'stopGame'});
+				}
+			},
+
+			answer = function(e){
+				if (e.target.classList.contains('gameAnswer')) {
+					ws.send({method: 'answer', answer: e.target.dataset.id});
+				}
+			},
+
+			onmessage = function(data){
+				this['on'+ data.method](data);
+			};
+
+			function Game(id, players){
+				this.id = id;
+
+				this.container = getById('gameContainer');
+				this.players = getById('gamePlayers');
+				this.invites = getById('gameInvites');
+
+				this.area = getById('gameArea');
+				this.stop = getById('gameStop');
+				this.result = getById('gameResult');
+				this.answers = getById('gameAnswers');
+				this.questionNum = getById('gameQuestionNum');
+
+				this.renderPlayers(players);
+				this.container.style.display = 'block';
+				this.stop.onclick = stopGame.bind(this);
+				this.players.onclick = invite.bind(this);
+				this.invites.onclick = startGame.bind(this);
+				ws.onmessage = onmessage.bind(this);
+			}
+
+			proto.renderPlayers = function(players){
+				var str = '';
+				for (var id in players) {
+					if (id == this.id) {
+						str += '<span id="pl-'+ id +'" class="gameCurPlayer">'+ players[id] +'</span>';
+					} else {
+						str += '<a href="javascript:" id="pl-'+ id +'" class="gamePlayer">'+ players[id] +'</a>';
+					}
+				}
+				this.players.innerHTML = str + this.players.innerHTML;
+			};
+
+			proto.oninvite = function(data){
+				var existed = getById('inv-'+ data.id);
+				if (existed) {
+					existed.remove();
+				}
+				this.invites.innerHTML += '<a href="javascript:" id="inv-'+ data.id +'" class="gameInvite">'+ data.name +'</a>';
+			};
+
+			proto.onadd = function(data){
+				if (this.id != data.id) {
+					var player = {};
+					player[data.id] = data.name;
+					this.renderPlayers(player);
+				}
+			};
+
+			proto.onremove = function(data){
+				var 
+				player = getById('pl-'+ data.id),
+				invite = getById('inv-'+ data.id);
+
+				player ? player.remove() : 1;
+				invite ? invite.remove() : 1;
+
+				if (data.id == this.playingId) {
+					this.onstopGame();
+				}
+			};
+
+			proto.onstartGame = function(data){
+				if (!data.success) {
+					return alert(data.message);
+				}
+				var invite = getById('inv-'+ data.id);
+				invite ? invite.remove() : 1;
+
+				this.result.textContent = 'Game messages home';
+				this.questionNum.textContent = 1;
+				this.area.style.display = 'inline-block';
+				this.answers.onclick = answer.bind(this);
+
+				this.playingId = data.id;
+			};
+
+			proto.onstopGame = function(data){
+				this.playingId = '';
+				this.answers.onclick = null;
+				this.result.textContent = 'User stoped game. Sorry.';
+			};
+
+			proto.onanswer = function(data){
+				this.result.textContent = 'User answered: '+ data.answer;
+				if (data.result) {
+					this.answers.onclick = null;
+					this.result.innerHTML += '<br>Game finished. You result: '+ data.result +'%';
+					this.playingId = '';
+				} else {
+					var questionNum = parseInt(this.questionNum.textContent);
+					this.questionNum.textContent = ++questionNum;
+				}
+			};
+
+			return Game;
+		})(ws, getById),
+
+		LoginForm = (function(ws, getById){
+			var proto = LoginForm.prototype,
+
+			login = function(){
+				if (!this.loginName.value) {
+					return alert('Please put in name');
+				}
+				ws.send({method: 'login', name: this.loginName.value});
+			},
+
+			onLogedIn = function(data){
+				if (data.players) {
+					delete ws.onmessage;
+					new Game(data.id, data.players);
+					this.destroy();
+				}
+			};
+
+			function LoginForm(){
+				this.loginForm = getById('loginForm');
+				this.loginName = getById('loginName');
+				this.loginBtn  = getById('loginBtn');
+
+				this.loginBtn.onclick = login.bind(this);
+				ws.onmessage = onLogedIn.bind(this);
+			}
+
+			proto.destroy = function(){
+				this.loginForm.remove();
+				delete this;
+			}
+
+			return LoginForm;
+		})(ws, getById),
+
+		loginForm = new LoginForm();
+	})(new WebSocket('ws://192.168.56.101:8080/game'),
+	// })(new WebSocket('ws://localhost:8080/game'),
+		document.getElementById.bind(document));
+    </script>
+</body>
+</html>
