@@ -11,6 +11,7 @@ namespace Game
 		private static Dictionary<String, Model.Player> players = new Dictionary<String, Model.Player>(100);
 		private Model.Player player;
 
+		private static Store.Questions questions = new Store.Questions();
 		private static Dictionary<String, Int32[]> answers = new Dictionary<String, Int32[]>();
 		private static Dictionary<String, Double> results = new Dictionary<String, Double>();
 
@@ -130,17 +131,20 @@ namespace Game
 
 			// answers count, right answers count, answer1, answer2
 			Game.answers [pair.Id] = new [] {0, 0, 0, 0};
+			Dictionary<String, String> question = questions.getQuestion (this.player, opponent);
 
 			this.SendAsync (JsonSerializer.SerializeToString(new {
 				method = "startGame",
 				success = true,
 				player = opponent,
+				question = question[this.player.id],
 			}), null);
 
 			this.Sessions.SendToAsync (opponent.id, JsonSerializer.SerializeToString(new {
 				method = "startGame",
 				success = true,
 				player = this.player,
+				question = question[opponent.id],
 			}), null);
 		}
 
@@ -205,16 +209,20 @@ namespace Game
 				result = (Game.answers [pairId] [1] * 100) / Game.answers [pairId] [0];
 			}
 
+			Dictionary<String, String> question = questions.getQuestion (this.player, this.player.Opponent);
+
 			this.SendAsync (JsonSerializer.SerializeToString(new {
 				method = "answer",
 				answer = Game.answers [pairId] [answerPos],
 				result = result,
+				question = question[this.player.id],
 			}), null);
 
 			this.Sessions.SendToAsync (this.player.Opponent.id, JsonSerializer.SerializeToString(new {
 				method = "answer",
 				answer = answer,
 				result = result,
+				question = question[this.player.Opponent.id],
 			}), null);
 
 			Game.answers [pairId] [2] = 0;
