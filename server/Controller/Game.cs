@@ -43,6 +43,7 @@ namespace Game
 
 		protected override void OnClose (CloseEventArgs e)
 		{
+			Game.players.TryGetValue (this.ID, out this.player);
 			if (this.player == null) {
 				return;
 			}
@@ -71,6 +72,7 @@ namespace Game
 
 			this.SendAsync (JsonSerializer.SerializeToString(new {
 				method = "players",
+				player = newPlayer,
 				players = Game.players,
 			}), null);
 		}
@@ -140,14 +142,12 @@ namespace Game
 
 			this.SendAsync (JsonSerializer.SerializeToString(new {
 				method = "startGame",
-				success = true,
 				player = opponent,
 				question = question[this.player.id],
 			}), null);
 
 			this.Sessions.SendToAsync (opponent.id, JsonSerializer.SerializeToString(new {
 				method = "startGame",
-				success = true,
 				player = this.player,
 				question = question[opponent.id],
 			}), null);

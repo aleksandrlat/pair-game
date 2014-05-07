@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace Game.Model
 {
@@ -13,6 +14,7 @@ namespace Game.Model
 		public Pair pair;
 		public Dictionary<String, Player> invites = new Dictionary<String, Player>(10);
 
+		[IgnoreDataMember]
 		public Player Opponent
 		{
 			get {

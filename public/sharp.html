@@ -15,6 +15,9 @@
 		#gameContainer {
 			display: none;
 		}
+		#gameWait {
+			display: none;
+		}
 		#gameArea {
 			vertical-align: top;
 			display: none;
@@ -51,26 +54,27 @@
 		<div id="preloader">Loading...</div>
 		<div id="loginForm">
 			<input type="text" id="loginName">
+			<input type="text" id="loginGender" value="0">
 			<input type="button" id="loginBtn" value="Login">
 		</div>
 		<div id="gameContainer">
 			<div id="gamePlayers"></div><!--
 			--><div id="gameInvites"></div><!--
 			--><div id="gameArea">
-				<div id="gameStop" title="Stop the Game">X</div>
-				<div id="gameResult">Game messages home</div>
-				<div id="gameQuestion">Question <b id="gameQuestionNum">1</b>: here is the question body</div>
-				<div id="gameAnswers">
-					<a data-id="1" class="gameAnswer" href="javascript:">answer 1</a>&nbsp;
-					<a data-id="2" class="gameAnswer" href="javascript:">answer 2</a>&nbsp;
-					<a data-id="3" class="gameAnswer" href="javascript:">answer 3</a>&nbsp;
-				</div>
+					<div id="gameStop" title="Stop the Game">X</div>
+					<div id="gameResult">Game messages home</div>
+					<div id="gameQuestion">Question <b id="gameQuestionNum">1</b>: <b id="gameQuestionBody">here is the question body</b></div>
+					<div id="gameWait">Waiting answer of other player</div>
+					<div id="gameAnswers">
+						<a data-id="1" class="gameAnswer" href="javascript:">Yes</a>&nbsp;
+						<a data-id="2" class="gameAnswer" href="javascript:">No</a>&nbsp;
+					</div>
 			</div>
 		</div>
 	</div>
 
 	<script type="text/javascript">
-	(function(ws, getById){
+	(function(webSoc, getById){
 		var
 
 		preloader = (function(getById){
@@ -112,7 +116,7 @@
 			};
 
 			return new WS(ws);
-		})(ws),
+		})(webSoc),
 
 		Game = (function(ws, getById){
 			var proto = Game.prototype,
@@ -139,6 +143,8 @@
 			answer = function(e){
 				if (e.target.classList.contains('gameAnswer')) {
 					ws.send({method: 'answer', answer: e.target.dataset.id});
+					this.wait.style.display = 'block';
+					this.answers.style.display = 'none';
 				}
 			},
 
@@ -146,8 +152,8 @@
 				this['on'+ data.method](data);
 			};
 
-			function Game(id, players){
-				this.id = id;
+			function Game(player, players){
+				this.player = player;
 
 				this.container = getById('gameContainer');
 				this.players = getById('gamePlayers');
@@ -155,9 +161,11 @@
 
 				this.area = getById('gameArea');
 				this.stop = getById('gameStop');
+				this.wait = getById('gameWait');
 				this.result = getById('gameResult');
 				this.answers = getById('gameAnswers');
 				this.questionNum = getById('gameQuestionNum');
+				this.questionBody = getById('gameQuestionBody');
 
 				this.renderPlayers(players);
 				this.container.style.display = 'block';
@@ -169,68 +177,79 @@
 
 			proto.renderPlayers = function(players){
 				var str = '';
-				for (var id in players) {
-					if (id == this.id) {
-						str += '<span id="pl-'+ id +'" class="gameCurPlayer">'+ players[id] +'</span>';
+				for (var player in players) {
+					player = players[player];
+					if (player.id == this.player.id) {
+						str += '<span id="pl-'+ player.id +'" class="gameCurPlayer">'+ player.name +'</span>';
 					} else {
-						str += '<a href="javascript:" id="pl-'+ id +'" class="gamePlayer">'+ players[id] +'</a>';
+						str += '<a href="javascript:" id="pl-'+ player.id +'" class="gamePlayer">'+ player.name +' ('+ player.gender +')'+'</a>';
 					}
 				}
 				this.players.innerHTML = str + this.players.innerHTML;
 			};
 
 			proto.oninvite = function(data){
-				var existed = getById('inv-'+ data.id);
+				if (data.error) {
+					alert(data.error);
+					return;
+				}
+				var existed = getById('inv-'+ data.player.id);
 				if (existed) {
 					existed.remove();
 				}
-				this.invites.innerHTML += '<a href="javascript:" id="inv-'+ data.id +'" class="gameInvite">'+ data.name +'</a>';
+				this.invites.innerHTML += '<a href="javascript:" id="inv-'+ data.player.id +'" class="gameInvite">'+ data.player.name +'</a>';
 			};
 
 			proto.onadd = function(data){
-				if (this.id != data.id) {
+				if (this.player.id != data.player.id) {
 					var player = {};
-					player[data.id] = data.name;
+					player[data.player.id] = data.player;
 					this.renderPlayers(player);
 				}
 			};
 
 			proto.onremove = function(data){
 				var 
-				player = getById('pl-'+ data.id),
-				invite = getById('inv-'+ data.id);
+				player = getById('pl-'+ data.player.id),
+				invite = getById('inv-'+ data.player.id);
 
-				player ? player.remove() : 1;
-				invite ? invite.remove() : 1;
+				player && player.remove();
+				invite && invite.remove();
 
-				if (data.id == this.playingId) {
+				if (data.player.id == this.playingId) {
 					this.onstopGame();
 				}
 			};
 
 			proto.onstartGame = function(data){
-				if (!data.success) {
-					return alert(data.message);
+				if (data.error) {
+					alert(data.error);
+					return;
 				}
-				var invite = getById('inv-'+ data.id);
-				invite ? invite.remove() : 1;
+				var invite = getById('inv-'+ data.player.id);
+				invite && invite.remove();
 
+				this.questionBody.textContent = data.question;
 				this.result.textContent = 'Game messages home';
 				this.questionNum.textContent = 1;
 				this.area.style.display = 'inline-block';
 				this.answers.onclick = answer.bind(this);
 
-				this.playingId = data.id;
+				this.playingId = data.player.id;
 			};
 
-			proto.onstopGame = function(data){
+			proto.onstopGame = function(){
 				this.playingId = '';
 				this.answers.onclick = null;
 				this.result.textContent = 'User stoped game. Sorry.';
 			};
 
 			proto.onanswer = function(data){
-				this.result.textContent = 'User answered: '+ data.answer;
+				if (data.error) {
+					alert(data.error);
+					return;
+				}
+				this.result.textContent = 'User answered: '+ (data.answer == 1 ? 'Yes' : 'No');
 				if (data.result) {
 					this.answers.onclick = null;
 					this.result.innerHTML += '<br>Game finished. You result: '+ data.result +'%';
@@ -238,6 +257,10 @@
 				} else {
 					var questionNum = parseInt(this.questionNum.textContent);
 					this.questionNum.textContent = ++questionNum;
+					this.questionBody.textContent = data.question;
+
+					this.wait.style.display = 'none';
+					this.answers.style.display = 'block';
 				}
 			};
 
@@ -249,15 +272,16 @@
 
 			login = function(){
 				if (!this.loginName.value) {
-					return alert('Please put in name');
+					alert('Please put in name');
+					return;
 				}
-				ws.send({method: 'login', name: this.loginName.value});
+				ws.send({method: 'login', name: this.loginName.value, gender: this.loginGender.value});
 			},
 
 			onLogedIn = function(data){
 				if (data.players) {
 					delete ws.onmessage;
-					new Game(data.id, data.players);
+					new Game(data.player, data.players);
 					this.destroy();
 				}
 			};
@@ -265,6 +289,7 @@
 			function LoginForm(){
 				this.loginForm = getById('loginForm');
 				this.loginName = getById('loginName');
+				this.loginGender = getById('loginGender');
 				this.loginBtn  = getById('loginBtn');
 
 				this.loginBtn.onclick = login.bind(this);
@@ -274,7 +299,7 @@
 			proto.destroy = function(){
 				this.loginForm.remove();
 				delete this;
-			}
+			};
 
 			return LoginForm;
 		})(ws, getById),
