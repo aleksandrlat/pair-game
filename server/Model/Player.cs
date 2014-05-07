@@ -7,9 +7,9 @@ namespace Game.Model
 	{
 		public enum Gender { female, male };
 
-		public String id;
-		public String name;
-		public Gender gender;
+		public String id { get; set; }
+		public String name { get; set; }
+		public Gender gender { get; set; }
 		public Pair pair;
 		public Dictionary<String, Player> invites = new Dictionary<String, Player>(10);
 

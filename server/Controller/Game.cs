@@ -43,6 +43,9 @@ namespace Game
 
 		protected override void OnClose (CloseEventArgs e)
 		{
+			if (this.player == null) {
+				return;
+			}
 			Game.players.Remove (this.player.id);
 			Console.WriteLine ("Remove player with id: {0}", this.player.id);
 			this.Sessions.BroadcastAsync (JsonSerializer.SerializeToString(new {
@@ -79,6 +82,8 @@ namespace Game
 				error = "Player is not in the game";
 			} else if (this.player == null) {
 				error = "You are not in the game";
+			} else if (this.player.gender == opponent.gender) {
+				error = "You cannot invite player with same gender";
 			}
 
 			if (!String.IsNullOrEmpty(error)) {
