@@ -22,7 +22,7 @@ namespace Game
 			Model.Player opponent;
 			switch(data.Get("method")){
 			case "login":
-				this.Login (this.ID, data.Get("name"), data.Get<Int32>("gender"));
+				this.Login (this.ID, data.Get("name"), data.Get("photo"), data.Get<Int32>("gender"));
 				break;
 			case "invite":
 				Game.players.TryGetValue (data.Get("id"), out opponent);
@@ -55,11 +55,12 @@ namespace Game
 			}), null);
 		}
 
-		private void Login (String id, String name, Int32 gender)
+		private void Login (String id, String name, String photo, Int32 gender)
 		{
 			Model.Player newPlayer = new Model.Player () {
 				id = id,
 				name = name,
+				photo = photo,
 				gender = (Model.Player.Gender)gender,
 			};
 

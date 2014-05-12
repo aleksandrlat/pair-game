@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link type="text/css" rel="stylesheet" href="/css/base.css">
+	<script type="text/javascript" src="/js/module.js"></script>
+	<title></title>
+</head>
+<body>
+<script>
+var module = new Module('/js/');
+module.define(['base', 'game'], '', function(base, game){
+	var
+	ws = new base.WS(new WebSocket('ws://192.168.56.101:8080/game')),
+	paramsArr = decodeURIComponent(window.location.search.slice(1)).split('&'),
+	params = {};
+
+	for (var i = 0; i < paramsArr.length; i++) {
+		var tmparr = paramsArr[i].split('=');
+		params[tmparr[0]] = tmparr[1];
+	}
+	var userData = JSON.parse(params['api_result']).response[0];
+	console.log(userData);
+
+	ws.onmessage = function(data){
+		if (!data.players) {
+			return;
+		}
+		delete ws.onmessage;
+		var g = new game.Game(ws, data.player, data.players);
+	};
+
+	ws.send({
+		method: 'login',
+		name: userData.screen_name,
+		photo: userData.photo_200_orig,
+		gender: (userData.sex == 2 ? 1 : 0)
+	});
+});
+</script>
+</body>
+</html>
