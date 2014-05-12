@@ -6,11 +6,16 @@ WS = (function(){
 
 	onmessage = function(e){
 		this.onmessage(JSON.parse(e.data));
+	},
+
+	onopen = function(e){
+		this.onopen(e);
 	};
 
 	function WS(ws){
 		this.ws = ws;
 		this.ws.onmessage = onmessage.bind(this);
+		this.ws.onopen = onopen.bind(this);
 	}
 
 	proto.send = function(data){
@@ -19,6 +24,10 @@ WS = (function(){
 
 	proto.onmessage = function(data){
 		console.log(data);
+	};
+
+	proto.onopen = function(e){
+		console.log(e);
 	};
 
 	return WS;

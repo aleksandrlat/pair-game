@@ -6,6 +6,11 @@
 	<title></title>
 </head>
 <body>
+<div id="container">
+	<div id="players"></div>
+	<div id="invites"></div>
+	<div id="area"></div>
+</div>
 <script>
 var module = new Module('/js/');
 module.define(['base', 'game'], '', function(base, game){
@@ -29,12 +34,14 @@ module.define(['base', 'game'], '', function(base, game){
 		var g = new game.Game(ws, data.player, data.players);
 	};
 
-	ws.send({
-		method: 'login',
-		name: userData.screen_name,
-		photo: userData.photo_200_orig,
-		gender: (userData.sex == 2 ? 1 : 0)
-	});
+	ws.onopen = function(){
+		ws.send({
+			method: 'login',
+			name: userData.screen_name,
+			photo: userData.photo_200_orig,
+			gender: (userData.sex == 2 ? 1 : 0)
+		});
+	};
 });
 </script>
 </body>
