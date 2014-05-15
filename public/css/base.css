@@ -1,0 +1,82 @@
+html {
+	font: 11px Tahoma, Arial, Helvetica, sans-serif;
+}
+#header {
+	height: 60px;
+	background: url(../i/header-pat.jpg);
+	margin: -8px -8px 15px -8px;
+}
+#header > #logo {
+	height: 60px;
+	width: 149px;
+	background: url(../i/header-logo.png);
+	background-size: cover;
+}
+#container .title {
+	font-size: 23px;
+	margin-bottom: 10px;
+}
+#players {
+	white-space: nowrap;
+	overflow-x: scroll;
+	padding-bottom: 5px;
+	-webkit-user-select: none;  /* Chrome all / Safari all */
+	-moz-user-select: none;     /* Firefox all */
+	-ms-user-select: none;      /* IE 10+ */
+
+	/* No support for these yet, use at own risk */
+	-o-user-select: none;
+	user-select: none;
+}
+/* Let's get this party started */
+::-webkit-scrollbar {
+	height: 10px;
+}
+/* Track */
+::-webkit-scrollbar-track {
+	background: lightgrey;
+}
+/* Handle */
+::-webkit-scrollbar-thumb {
+	background: darkgrey;
+}
+#players > .player {
+	display: inline-block;
+	padding: 3px;
+	cursor: pointer;
+	border: 1px solid transparent;
+}
+#players > .player:hover {
+	border: 1px solid darkgrey;
+}
+#players > .player > .photo {
+	width: 200px;
+	height: 200px;
+	background: center center;
+	background-size: cover;
+	margin-bottom: 5px;
+	position: relative;
+}
+#players > .player > .photo > .gender {
+	position: absolute;
+	width: 50px;
+	height: 50px;
+	right: 5px;
+	bottom: 5px;
+	background-color: indianred;
+}
+
+#players > .player > .btn {
+	color: white;
+	display: block;
+	padding: 5px 10px;
+	height: 30px;
+	line-height: 30px;
+	text-align: center;
+	border: 1px solid darkgreen;
+	background: darkgreen;
+	font-size: 16px;
+}
+#players > .player > .btn:hover {
+	background: green;
+}
