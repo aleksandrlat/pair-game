@@ -13,6 +13,46 @@ Game = (function(window, byId){
 				'</div>' +
 				'<div class="btn">Пригласить</div>' +
 			'</div>';
+		},
+		invite: function(invite){
+			return '' +
+			'<div id="inv-'+ invite.id +'" class="invite">' +
+				'<div class="photo" title="'+ invite.name +'" style="background-image: url('+ invite.photo +')"></div>' +
+				'<div class="btn">Начать игру</div>' +
+			'</div>';
+		}
+	},
+
+	parent = function(el, className){
+		while (!el.classList.contains(className)) {
+			el = el.parentNode;
+			if (!el) {
+				break;
+			}
+		}
+		return el;
+	},
+
+	invite = function(e){
+		this.ws.send({method: 'invite', id: parent(e.target, 'player').id.substr(3)});
+	},
+
+	startGame = function(e){
+		this.ws.send({method: 'startGame', id: parent(e.target, 'invite').id.substr(4)});
+	},
+
+	stopGame = function(e){
+		this.area.style.display = 'none';
+		if (this.playingId) {
+			this.ws.send({method: 'stopGame'});
+		}
+	},
+
+	answer = function(e){
+		if (e.target.classList.contains('answer')) {
+			this.ws.send({method: 'answer', answer: e.target.dataset.id});
+			this.wait.style.display = 'block';
+			this.answers.style.display = 'none';
 		}
 	},
 
@@ -25,20 +65,21 @@ Game = (function(window, byId){
 		this.ws = ws;
 		this.player = player;
 
-		this.elPlayers = byId('players');
-		this.renderPlayers(players);
+		this.players = byId('players');
+		this.invites = byId('invites');
 
+		this.renderPlayers(players);
+		this.players.onclick = invite.bind(this);
+		this.invites.onclick = startGame.bind(this);
 		ws.onmessage = onmessage.bind(this);
 	}
 
 	proto.renderPlayers = function(players){
 		var str = '';
 		for (var i in players) {
-			for (var j = 0; j < 10; ++j) {
-				str += templates.player(players[i]);
-			}
+			str += templates.player(players[i]);
 		}
-		this.elPlayers.innerHTML = str + this.elPlayers.innerHTML;
+		this.players.innerHTML = str + this.players.innerHTML;
 	};
 
 	proto.oninvite = function(data){
@@ -50,7 +91,8 @@ Game = (function(window, byId){
 		if (existed) {
 			existed.remove();
 		}
-		this.invites.innerHTML += '<a href="javascript:" id="inv-'+ data.player.id +'" class="gameInvite">'+ data.player.name +'</a>';
+		this.invites.getElementsByClassName('empty')[0].style.display = 'none';
+		this.invites.innerHTML = templates.invite(data.player) + this.invites.innerHTML;
 	};
 
 	proto.onadd = function(data){
@@ -77,10 +119,12 @@ Game = (function(window, byId){
 	proto.onstartGame = function(data){
 		if (data.error) {
 			alert(data.error);
-			return;
-		}
+			return;		}
 		var invite = byId('inv-'+ data.player.id);
 		invite && invite.remove();
+		if (this.invites.getElementsByClassName('invite').length <= 0) {
+			this.invites.getElementsByClassName('empty')[0].style.display = 'block';
+		}
 
 		this.questionBody.textContent = data.question;
 		this.result.textContent = 'Game messages home';

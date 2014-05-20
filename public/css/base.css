@@ -1,6 +1,9 @@
 html {
 	font: 11px Tahoma, Arial, Helvetica, sans-serif;
 }
+h1, h2 {
+	font-weight: normal;
+}
 #header {
 	height: 60px;
 	background: url(../i/header-pat.jpg);
@@ -29,15 +32,15 @@ html {
 	user-select: none;
 }
 /* Let's get this party started */
-::-webkit-scrollbar {
+#players::-webkit-scrollbar {
 	height: 10px;
 }
 /* Track */
-::-webkit-scrollbar-track {
-	background: lightgrey;
+#players::-webkit-scrollbar-track {
+	background: transparent;
 }
 /* Handle */
-::-webkit-scrollbar-thumb {
+#players::-webkit-scrollbar-thumb {
 	background: darkgrey;
 }
 #players > .player {
@@ -78,5 +81,69 @@ html {
 	font-size: 16px;
 }
 #players > .player > .btn:hover {
+	background: green;
+}
+
+#invites {
+	white-space: nowrap;
+	overflow-x: scroll;
+	padding-bottom: 5px;
+	-webkit-user-select: none;  /* Chrome all / Safari all */
+	-moz-user-select: none;     /* Firefox all */
+	-ms-user-select: none;      /* IE 10+ */
+
+	/* No support for these yet, use at own risk */
+	-o-user-select: none;
+	user-select: none;
+}
+/* Let's get this party started */
+#invites::-webkit-scrollbar {
+	height: 8px;
+}
+/* Track */
+#invites::-webkit-scrollbar-track {
+	background: transparent;
+}
+/* Handle */
+#invites::-webkit-scrollbar-thumb {
+	background: darkgrey;
+}
+#invites > .empty {
+	width: 100%;
+	font-size: 13px;
+	text-align: center;
+	height: 145px;
+	line-height: 145px;
+	background-color: white;
+}
+#invites > .invite {
+	display: inline-block;
+	padding: 3px;
+	cursor: pointer;
+	border: 1px solid transparent;
+}
+#invites > .invite:hover {
+	border: 1px solid darkgrey;
+}
+#invites > .invite > .photo {
+	width: 100px;
+	height: 100px;
+	background: center center;
+	background-size: cover;
+	margin-bottom: 5px;
+	position: relative;
+}
+#invites > .invite > .btn {
+	color: white;
+	display: block;
+	padding: 5px 10px;
+	height: 20px;
+	line-height: 20px;
+	text-align: center;
+	border: 1px solid darkgreen;
+	background: darkgreen;
+	font-size: 13px;
+}
+#invites > .invite > .btn:hover {
 	background: green;
 }
