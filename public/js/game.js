@@ -85,7 +85,7 @@ Game = (function(window, byId){
 			this.gameArea.question.answers.wait.style.display = 'block';
 
 			this.gameArea.left.result.textContent = (e.target.dataset.id == 1 ? 'Да' : 'Нет');
-			this.gameArea.left.result.style.backgroundColor = (e.target.dataset.id == 1 ? 'green' : 'red');
+			this.gameArea.left.result.style.backgroundColor = (e.target.dataset.id == 1 ? 'darkgreen' : 'darkred');
 
 			this.gameArea.left.name.style.display = 'none';
 			this.gameArea.left.result.style.display = 'block';
@@ -195,10 +195,10 @@ Game = (function(window, byId){
 
 		var resultColor = '', resultText = '';
 		if (this.gameArea.question.answers.answer == data.answer) {
-			resultColor = 'green';
+			resultColor = 'darkgreen';
 			resultText = 'Совпало';
 		} else {
-			resultColor = 'red';
+			resultColor = 'darkred';
 			resultText = 'Не совпало';
 		}
 
@@ -209,7 +209,7 @@ Game = (function(window, byId){
 		this.gameArea.question.answers.result.style.display = 'block';
 
 		this.gameArea.right.result.textContent = (data.answer == 1 ? 'Да' : 'Нет');
-		this.gameArea.right.result.style.backgroundColor = (data.answer == 1 ? 'green' : 'red');
+		this.gameArea.right.result.style.backgroundColor = (data.answer == 1 ? 'darkgreen' : 'darkred');
 
 		this.gameArea.right.name.style.display = 'none';
 		this.gameArea.right.result.style.display = 'block';
