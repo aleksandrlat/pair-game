@@ -33,6 +33,35 @@ Game = (function(window, byId){
 		return el;
 	},
 
+	initGame = function(gameEl, player){
+		if (gameEl.question) {
+			return;
+		}
+
+		gameEl.left = gameEl.getElementsByClassName('left')[0];
+		gameEl.right = gameEl.getElementsByClassName('right')[0];
+		gameEl.question = gameEl.getElementsByClassName('question')[0];
+
+		gameEl.left.name = gameEl.left.getElementsByClassName('name')[0];
+		gameEl.left.photo = gameEl.left.getElementsByClassName('photo')[0];
+		gameEl.left.result = gameEl.left.getElementsByClassName('result')[0];
+
+		gameEl.right.name = gameEl.right.getElementsByClassName('name')[0];
+		gameEl.right.photo = gameEl.right.getElementsByClassName('photo')[0];
+		gameEl.right.result = gameEl.right.getElementsByClassName('result')[0];
+
+		gameEl.question.num = 0;
+		gameEl.question.type = gameEl.question.getElementsByClassName('type')[0];
+		gameEl.question.text = gameEl.question.getElementsByClassName('text')[0];
+		gameEl.question.answers = gameEl.question.getElementsByClassName('answers')[0];
+		gameEl.question.answers.btns = gameEl.question.answers.getElementsByClassName('btns')[0];
+		gameEl.question.answers.wait = gameEl.question.answers.getElementsByClassName('wait')[0];
+		gameEl.question.answers.result = gameEl.question.answers.getElementsByClassName('result')[0];
+
+		gameEl.left.name.textContent = player.name;
+		gameEl.left.photo.style.backgroundImage = 'url('+ player.photo +')';
+	},
+
 	invite = function(e){
 		this.ws.send({method: 'invite', id: parent(e.target, 'player').id.substr(3)});
 	},
@@ -49,10 +78,17 @@ Game = (function(window, byId){
 	},
 
 	answer = function(e){
-		if (e.target.classList.contains('answer')) {
+		if (e.target.classList.contains('btn')) {
 			this.ws.send({method: 'answer', answer: e.target.dataset.id});
-			this.wait.style.display = 'block';
-			this.answers.style.display = 'none';
+			this.gameArea.question.answers.answer = e.target.dataset.id;
+			this.gameArea.question.answers.btns.style.display = 'none';
+			this.gameArea.question.answers.wait.style.display = 'block';
+
+			this.gameArea.left.result.textContent = (e.target.dataset.id == 1 ? 'Да' : 'Нет');
+			this.gameArea.left.result.style.backgroundColor = (e.target.dataset.id == 1 ? 'green' : 'red');
+
+			this.gameArea.left.name.style.display = 'none';
+			this.gameArea.left.result.style.display = 'block';
 		}
 	},
 
@@ -67,6 +103,8 @@ Game = (function(window, byId){
 
 		this.players = byId('players');
 		this.invites = byId('invites');
+		this.gameArea = byId('gameArea');
+		this.mainTitle = byId('container').getElementsByTagName('h1')[0];
 
 		this.renderPlayers(players);
 		this.players.onclick = invite.bind(this);
@@ -119,18 +157,26 @@ Game = (function(window, byId){
 	proto.onstartGame = function(data){
 		if (data.error) {
 			alert(data.error);
-			return;		}
+			return;
+		}
 		var invite = byId('inv-'+ data.player.id);
 		invite && invite.remove();
 		if (this.invites.getElementsByClassName('invite').length <= 0) {
 			this.invites.getElementsByClassName('empty')[0].style.display = 'block';
 		}
 
-		this.questionBody.textContent = data.question;
-		this.result.textContent = 'Game messages home';
-		this.questionNum.textContent = 1;
-		this.area.style.display = 'inline-block';
-		this.answers.onclick = answer.bind(this);
+		initGame(this.gameArea, this.player);
+
+		this.mainTitle.textContent = 'Вопрос номер 1';
+		this.gameArea.right.name.textContent = data.player.name;
+		this.gameArea.right.photo.style.backgroundImage = 'url('+ data.player.photo +')';
+		this.gameArea.question.text.textContent = data.question;
+		this.gameArea.question.num = 1;
+		this.gameArea.style.display = 'block';
+
+		this.players.style.display = 'none';
+
+		this.gameArea.question.answers.onclick = answer.bind(this);
 
 		this.playingId = data.player.id;
 	};
@@ -146,18 +192,46 @@ Game = (function(window, byId){
 			alert(data.error);
 			return;
 		}
-		this.result.textContent = 'User answered: '+ (data.answer == 1 ? 'Yes' : 'No');
+
+		var resultColor = '', resultText = '';
+		if (this.gameArea.question.answers.answer == data.answer) {
+			resultColor = 'green';
+			resultText = 'Совпало';
+		} else {
+			resultColor = 'red';
+			resultText = 'Не совпало';
+		}
+
+		this.gameArea.question.answers.result.textContent = resultText;
+		this.gameArea.question.answers.result.style.backgroundColor = resultColor;
+
+		this.gameArea.question.answers.wait.style.display = 'none';
+		this.gameArea.question.answers.result.style.display = 'block';
+
+		this.gameArea.right.result.textContent = (data.answer == 1 ? 'Да' : 'Нет');
+		this.gameArea.right.result.style.backgroundColor = (data.answer == 1 ? 'green' : 'red');
+
+		this.gameArea.right.name.style.display = 'none';
+		this.gameArea.right.result.style.display = 'block';
+
 		if (data.result) {
 			this.answers.onclick = null;
 			this.result.innerHTML += '<br>Game finished. You result: '+ data.result +'%';
 			this.playingId = '';
 		} else {
-			var questionNum = parseInt(this.questionNum.textContent);
-			this.questionNum.textContent = ++questionNum;
-			this.questionBody.textContent = data.question;
+			setTimeout(function(){
+				this.mainTitle.textContent = 'Вопрос номер '+ (++this.gameArea.question.num);
+				this.gameArea.question.text.textContent = data.question;
 
-			this.wait.style.display = 'none';
-			this.answers.style.display = 'block';
+				this.gameArea.question.answers.result.style.display = 'none';
+				this.gameArea.question.answers.btns.style.display = 'block';
+
+				this.gameArea.left.result.style.display = 'none';
+				this.gameArea.left.name.style.display = 'block';
+
+				this.gameArea.right.result.style.display = 'none';
+				this.gameArea.right.name.style.display = 'block';
+			}.bind(this), 2000);
 		}
 	};
 

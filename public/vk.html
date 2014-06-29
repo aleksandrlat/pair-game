@@ -12,14 +12,38 @@
 	</div>
 
 	<h1>Выбери с кем играть</h1>
+
 	<div id="players"></div>
+
+	<div id="gameArea">
+		<div class="left player">
+			<div class="photo" style="background-image: url(http://cs10515.vk.me/u142696085/a_b94a241e.jpg)"></div>
+			<div class="name">Name</div>
+			<div class="result"></div>
+		</div>
+		<div class="right player">
+			<div class="photo" style="background-image: url(http://cs4548.vk.me/u41849461/a_aafceca2.jpg)"></div>
+			<div class="name">Name</div>
+			<div class="result"></div>
+		</div>
+		<div class="question">
+			<div class="type">Характер</div>
+			<div class="text">Ты любишь цветы?</div>
+			<div class="answers">
+				<div class="result"></div>
+				<div class="btns">
+					<div data-id="1" class="btn yes">Да</div>
+					<div data-id="2" class="btn no">Нет</div>
+				</div>
+				<div class="wait">Ждем ответа от другого игрока</div>
+			</div>
+		</div>
+	</div>
 
 	<h2>Приглашают тебя играть</h2>
 	<div id="invites">
 		<div class="empty">Пока тебя никто не приглашал</div>
 	</div>
-
-	<div id="gameArea"></div>
 </div>
 <script>
 var module = new Module('/js/');

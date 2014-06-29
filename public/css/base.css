@@ -15,7 +15,7 @@ h1, h2 {
 	background: url(../i/header-logo.png);
 	background-size: cover;
 }
-#container .title {
+#container > .title {
 	font-size: 23px;
 	margin-bottom: 10px;
 }
@@ -146,4 +146,97 @@ h1, h2 {
 }
 #invites > .invite > .btn:hover {
 	background: green;
+}
+
+#gameArea {
+	overflow: auto;
+	text-align: center;
+	display: none;
+}
+#gameArea > .player {
+	padding: 3px;
+	border: 1px solid transparent;
+}
+#gameArea > .player:hover {
+	border: 1px solid darkgrey;
+}
+#gameArea > .player > .photo {
+	width: 200px;
+	height: 200px;
+	background: center center;
+	background-size: cover;
+	margin-bottom: 5px;
+	position: relative;
+}
+#gameArea > .player > .name,
+#gameArea > .player > .result {
+	height: 30px;
+	line-height: 30px;
+	font-size: 16px;
+	text-align: center;
+}
+#gameArea > .player > .result {
+	color: white;
+	display: none;
+}
+#gameArea > .left {
+	float: left;
+}
+#gameArea > .right {
+	float: right;
+}
+#gameArea > .question {
+	display: inline-block;
+	width: 375px;
+	padding: 3px 10px;
+}
+#gameArea > .question > .type {
+	font-size: 14px;
+}
+#gameArea > .question > .text {
+	font-size: 16px;
+	margin: 10px 0;
+	padding: 10px;
+	border-bottom: 1px solid darkgrey;
+	border-top: 1px solid darkgrey;
+}
+#gameArea > .question > .answers {
+	height: 31px;
+}
+#gameArea > .question > .answers > .btns {
+	height: 31px;
+}
+#gameArea > .question > .answers > .btns > .btn {
+	color: white;
+	display: inline-block;
+	padding: 5px 10px;
+	text-align: center;
+	font-size: 16px;
+	cursor: pointer;
+}
+#gameArea > .question > .answers > .btns > .yes {
+	border: 1px solid darkgreen;
+	background: darkgreen;
+}
+#gameArea > .question > .answers > .btns > .yes:hover {
+	background: green;
+}
+#gameArea > .question > .answers > .btns > .no {
+	border: 1px solid darkred;
+	background: darkred;
+}
+#gameArea > .question > .answers > .btns > .no:hover {
+	background: red;
+}
+#gameArea > .question > .answers > .wait {
+	display: none;
+	height: 31px;
+	line-height: 31px;
+}
+#gameArea > .question > .answers > .result {
+	color: white;
+	font-size: 16px;
+	display: none;
+	height: 31px;
+	line-height: 31px;
 }
